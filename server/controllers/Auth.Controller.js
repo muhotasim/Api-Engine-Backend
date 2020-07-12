@@ -3,8 +3,10 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const jwt = require('jsonwebtoken');
 const config = require('../../config');
+
+const token_expire_time = 900;
 module.exports = function (app, prefix) {
-  app.post(prefix + '/token', function (req, res) {
+  app.post(prefix + '/login', function (req, res) {
     const { email, password } = req.body;
     dbSdk.useRawQuery(
       'SELECT * FROM user WHERE email="' + email + '"',
@@ -15,67 +17,91 @@ module.exports = function (app, prefix) {
             if (result) {
               const token = jwt.sign(
                 {
-                  email: email,
                   userId: user.id,
                 },
                 config.privateKey,
                 {
-                  expiresIn: 60000,
+                  expiresIn: token_expire_time,
                 }
               );
-              return res.send({
-                status: 'success',
-                token: token,
+              const refresh_token = jwt.sign(
+                { userId: user.id },
+                config.REFRESH_TOKEN_PRIVATE_KEY
+              );
+              var dt = new Date();
+              dt = dt.setMinutes(dt.getMinutes() + 15);
+              const tokenData = {
+                token: refresh_token,
+                expires_in: dt,
+              };
+              dbSdk.insertData('auth_token', tokenData, (returnData) => {
+                return res.send({
+                  access_token: token,
+                  refresh_token: refresh_token,
+                });
               });
             } else {
-              return res.send({
-                status: 'failed',
-                message: 'Auth Failed',
-              });
+              return res.status(401);
             }
           });
         } else {
-          return res.send({
-            status: 'failed',
-            message: 'Auth Failed',
-          });
+          return res.status(401);
         }
       }
     );
   });
 
-  app.post(prefix + '/refresh_token', function (req, res) {
-    const token = req.body.refresh_token;
-    jwt.verify(token, config.privateKey, function (err, decoded) {
-      if (err) {
-        return res.send({
-          status: 'failed',
-          token: '',
-        });
-      }
-      console.log(decoded);
-      dbSdk.useRawQuery(
-        'SELECT * FROM user WHERE id=' + decoded.userId,
-        (returnData) => {
-          if (returnData && returnData.length) {
-            const user = returnData[0];
-            const token = jwt.sign(
-              {
-                email: user.email,
-                userId: user.id,
-              },
-              config.privateKey,
-              {
-                expiresIn: 60000,
-              }
-            );
-            return res.send({
-              status: 'success',
-              token: token,
-            });
-          }
+  app.post(prefix + '/token', function (req, res) {
+    const rf_token = req.body.refresh_token;
+    if (!rf_token) return res.sendStatus(401);
+    dbSdk.useRawQuery(
+      'SELECT * FROM auth_token WHERE token=' + '"' + rf_token + '"',
+      (returnData) => {
+        console.log(returnData);
+        if (returnData.length) {
+          const data = returnData[0];
+          jwt.verify(
+            data.token,
+            config.REFRESH_TOKEN_PRIVATE_KEY,
+            (err, result) => {
+              if (err) return res.sendStatus(403);
+              const token = jwt.sign(
+                {
+                  userId: result.id,
+                },
+                config.privateKey,
+                {
+                  expiresIn: token_expire_time,
+                }
+              );
+              const refresh_token = jwt.sign(
+                { userId: result.id },
+                config.REFRESH_TOKEN_PRIVATE_KEY
+              );
+              var dt = new Date();
+              dt = dt.setMinutes(dt.getMinutes() + 15);
+              const tokenData = {
+                token: refresh_token,
+                expires_in: dt,
+              };
+              dbSdk.deleteWithQuery(
+                'auth_token',
+                " WHERE token='" + rf_token + "'",
+                (returnD) => {
+                  dbSdk.insertData('auth_token', tokenData, (returnData) => {
+                    return res.send({
+                      access_token: token,
+                      refresh_token: refresh_token,
+                    });
+                  });
+                }
+              );
+            }
+          );
+        } else {
+          return res.sendStatus(403);
         }
-      );
-    });
+      }
+    );
   });
 };

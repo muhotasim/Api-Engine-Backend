@@ -1,5 +1,6 @@
 var mysql = require('mysql');
 const config = require('../../config');
+const { query } = require('express');
 var con = mysql.createConnection({
   host: config.host,
   user: config.username,
@@ -82,6 +83,7 @@ function processJSONdata(data) {
         values.push("'" + d + "'");
     }
   });
+  console.log(values);
   return ` (${Object.keys(data).join(',')}) VALUES (${values.join(',')})`;
 }
 
@@ -98,6 +100,7 @@ function deleteTable(tableName, callback) {
 
 function insertData(tableName, data, callback) {
   var sql = `INSERT INTO ${tableName} ${processJSONdata(data)}`;
+
   con.query(sql, function (err, result) {
     if (err) {
       callback(false);

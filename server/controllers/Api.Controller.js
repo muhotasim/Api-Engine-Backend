@@ -1,11 +1,20 @@
 const dbSdk = require('../databaseSDK');
 const { uploadFilesAndGetUrlsWithKeyAndObject } = require('../common');
+const jwt = require('jsonwebtoken');
+const config = require('../../config');
 const modulePrefix = 'api_engine_';
 module.exports = function (app, prefix) {
-  // app.use(prefix + '/*', function (req, res, next) {
-  //   next();
-  // });
+  app.use(prefix, function (req, res, next) {
+    const authTOken = req.headers['authorization'];
+    const token = authTOken && authTOken.split(' ')[1];
 
+    if (!token) return res.sendStatus(401);
+    jwt.verify(token, config.privateKey, (err, user) => {
+      if (err) return res.sendStatus(403);
+      req.user = user;
+      next();
+    });
+  });
   app.post(prefix + '/module/create', function (req, res) {
     const moduleName = modulePrefix + req.body.moduleName;
     dbSdk.useRawQuery(
@@ -75,7 +84,7 @@ module.exports = function (app, prefix) {
             }
           );
         } else {
-          res.json({
+          return res.status(500).json({
             status: 'failed',
             data: [],
           });
@@ -118,15 +127,21 @@ module.exports = function (app, prefix) {
   });
   app.post(prefix + '/modules', function (req, res) {
     const params = req.body;
+
     let query = ' SELECT * FROM system  LIMIT 10 OFFSET 0';
     dbSdk.useRawQuery(query, (returnData) => {
-      res.json({
+      if (returnData == false) {
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
+      }
+      return res.json({
         status: 'success',
         data: returnData,
       });
     });
   });
-
   // middlewate for module structure
   app.use(prefix + '/:moduleName', function (req, res, next) {
     dbSdk.useRawQuery(
@@ -154,7 +169,13 @@ module.exports = function (app, prefix) {
     const id = params.id;
     let query = ` SELECT * FROM ${moduleName} WHERE id=${id} LIMIT 1`;
     dbSdk.useRawQuery(query, (returnData) => {
-      res.json({
+      if (returnData == false) {
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
+      }
+      return res.status(200).json({
         status: 'success',
         data: returnData,
       });
@@ -167,7 +188,13 @@ module.exports = function (app, prefix) {
       params.select ? params.select : '*'
     } FROM ${moduleName} ${params.query ? params.query : ''}`;
     dbSdk.useRawQuery(query, (returnData) => {
-      res.json({
+      if (returnData == false) {
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
+      }
+      return res.status(200).json({
         status: 'success',
         data: returnData,
       });
@@ -180,7 +207,13 @@ module.exports = function (app, prefix) {
       params.query ? params.query : ''
     }`;
     dbSdk.useRawQuery(query, (returnData) => {
-      res.json({
+      if (returnData == false) {
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
+      }
+      res.status(200).json({
         status: 'success',
         data: returnData,
       });
@@ -190,7 +223,13 @@ module.exports = function (app, prefix) {
     const moduleName = modulePrefix + req.params.moduleName;
     const query = `DELETE  FROM ${moduleName} WHERE id=${req.params.id}`;
     dbSdk.useRawQuery(query, (returnData) => {
-      res.send({
+      if (returnData == false) {
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
+      }
+      return res.status(200).send({
         status: 'success',
         data: returnData,
       });
@@ -203,7 +242,13 @@ module.exports = function (app, prefix) {
       req.body,
       'WHERE id=' + req.params.id,
       (returnData) => {
-        res.json({
+        if (returnData == false) {
+          return res.status(500).json({
+            status: 'failed',
+            data: [],
+          });
+        }
+        return res.status(200).json({
           status: 'success',
           data: returnData,
         });
@@ -213,7 +258,13 @@ module.exports = function (app, prefix) {
   app.post(prefix + '/:moduleName/update', function (req, res) {
     const moduleName = modulePrefix + req.params.moduleName;
     dbSdk.updateData(moduleName, req.body, req.params.query, (returnData) => {
-      res.json({
+      if (returnData == false) {
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
+      }
+      return res.status(200).json({
         status: 'success',
         data: returnData,
       });
@@ -224,7 +275,13 @@ module.exports = function (app, prefix) {
     const moduleName = modulePrefix + req.params.moduleName;
     const query = `DELETE  FROM ${moduleName} WHERE id=${req.params.id}`;
     dbSdk.useRawQuery(query, (returnData) => {
-      res.json({
+      if (returnData == false) {
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
+      }
+      return res.status(200).json({
         status: 'success',
         data: returnData,
       });
@@ -250,7 +307,13 @@ module.exports = function (app, prefix) {
         });
         console.log(params);
         dbSdk.insertData(moduleName, params, (returnData) => {
-          res.json({
+          if (returnData == false) {
+            return res.status(500).json({
+              status: 'failed',
+              data: [],
+            });
+          }
+          return res.status(200).json({
             status: 'success',
             data: returnData,
           });
@@ -262,17 +325,16 @@ module.exports = function (app, prefix) {
     const data = req.body.data;
     const moduleName = modulePrefix + req.params.moduleName;
     dbSdk.bulkInsert(moduleName, JSON.parse(data), (returnData) => {
-      if (returnData) {
-        res.json({
-          status: 'success',
-          data: returnData,
-        });
-      } else {
-        res.json({
+      if (returnData == false) {
+        return res.status(500).json({
           status: 'failed',
-          data: returnData,
+          data: [],
         });
       }
+      return res.status(200).json({
+        status: 'success',
+        data: returnData,
+      });
     });
   });
 
