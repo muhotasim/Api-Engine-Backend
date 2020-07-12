@@ -1,16 +1,16 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const config = require('./config');
-
 const port = 9007;
-const path = require('path');
+const dotenv = require('dotenv');
+const fs = require('fs');
 const app = express();
-// const oauthserver = require('oauth2-server');
+const envConfig = dotenv.parse(fs.readFileSync('.env'));
+for (const k in envConfig) {
+  process.env[k] = envConfig[k];
+}
 
 app.use(express.urlencoded());
 app.use(express.json());
 
-// app.use(express.static(path.join(__dirname, 'public')));
 const onListen = () => {
   console.log(`server is running at http://localhost:${port}`);
 };

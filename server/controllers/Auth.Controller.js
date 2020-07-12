@@ -2,12 +2,12 @@ const dbSdk = require('../databaseSDK');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const jwt = require('jsonwebtoken');
-const config = require('../../config');
-const token_expire_time = config.tokenExpireTime;
 
 module.exports = function (app, prefix) {
   app.post(prefix + '/login', function (req, res) {
     const { email, password } = req.body;
+    console.log(process.env.privateKey, process.env.tokenExpireTime);
+    // if (!email || !password) return res.sendStatus(401);
     dbSdk.useRawQuery(
       'SELECT * FROM user WHERE email="' + email + '"',
       (returnData) => {
@@ -19,17 +19,18 @@ module.exports = function (app, prefix) {
                 {
                   userId: user.id,
                 },
-                config.privateKey,
+                process.env.privateKey,
                 {
-                  expiresIn: token_expire_time,
+                  expiresIn: parseInt(process.env.tokenExpireTime),
                 }
               );
               const refresh_token = jwt.sign(
                 { userId: user.id },
-                config.REFRESH_TOKEN_PRIVATE_KEY
+                process.env.REFRESH_TOKEN_PRIVATE_KEY
               );
               var dt = new Date();
-              dt = dt.getTime() + token_expire_time * 1000;
+              dt = dt.getTime() + process.env.tokenExpireTime * 1000;
+
               const tokenData = {
                 token: refresh_token,
                 expires_in: dt,
@@ -41,11 +42,11 @@ module.exports = function (app, prefix) {
                 });
               });
             } else {
-              return res.status(401);
+              return res.sendStatus(401);
             }
           });
         } else {
-          return res.status(401);
+          return res.sendStatus(401);
         }
       }
     );
@@ -61,21 +62,21 @@ module.exports = function (app, prefix) {
           const data = returnData[0];
           jwt.verify(
             data.token,
-            config.REFRESH_TOKEN_PRIVATE_KEY,
+            process.env.REFRESH_TOKEN_PRIVATE_KEY,
             (err, result) => {
               if (err) return res.sendStatus(403);
               const token = jwt.sign(
                 {
                   userId: result.id,
                 },
-                config.privateKey,
+                process.env.privateKey,
                 {
-                  expiresIn: token_expire_time,
+                  expiresIn: process.env.tokenExpireTime,
                 }
               );
               const refresh_token = jwt.sign(
                 { userId: result.id },
-                config.REFRESH_TOKEN_PRIVATE_KEY
+                process.env.REFRESH_TOKEN_PRIVATE_KEY
               );
               var dt = new Date();
               dt = dt.setMinutes(dt.getMinutes() + 15);

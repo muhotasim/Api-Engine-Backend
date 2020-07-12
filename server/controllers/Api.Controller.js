@@ -1,7 +1,6 @@
 const dbSdk = require('../databaseSDK');
 const { uploadFilesAndGetUrlsWithKeyAndObject } = require('../common');
 const jwt = require('jsonwebtoken');
-const config = require('../../config');
 const nodemailer = require('nodemailer');
 const modulePrefix = 'api_engine_';
 module.exports = function (app, prefix) {
@@ -10,7 +9,7 @@ module.exports = function (app, prefix) {
     const token = authTOken && authTOken.split(' ')[1];
 
     if (!token) return res.sendStatus(401);
-    jwt.verify(token, config.privateKey, (err, user) => {
+    jwt.verify(token, process.env.privateKey, (err, user) => {
       if (err) return res.sendStatus(403);
       req.user = user;
       next();
@@ -19,15 +18,14 @@ module.exports = function (app, prefix) {
   app.post(prefix + '/send-mail', function (req, res) {
     const { from, to, subject, text, html } = req.body;
     let transporter = nodemailer.createTransport({
-      host: config.mailHost,
-      port: config.mailPort,
-      secure: config.mailSecure,
+      host: process.env.mailHost,
+      port: process.env.mailPort,
+      secure: process.env.mailSecure,
       auth: {
-        user: config.mailUser,
-        pass: config.mailPassword,
+        user: process.env.mailUser,
+        pass: process.env.mailPassword,
       },
     });
-
     const sendMailObj = {
       from,
       to,
@@ -40,8 +38,13 @@ module.exports = function (app, prefix) {
     }
 
     transporter.sendMail(sendMailObj, (error, success) => {
-      console.log(error);
-      if (error) return res.sendStatus(401);
+      if (error) {
+        console.log(error);
+        return res.json({
+          status: 'failed',
+          data: [],
+        });
+      }
       return res.json({
         status: 'success',
         data: [],
@@ -164,10 +167,7 @@ module.exports = function (app, prefix) {
     let query = ' SELECT * FROM system  LIMIT 10 OFFSET 0';
     dbSdk.useRawQuery(query, (returnData) => {
       if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
-        });
+        return res.sendStatus(500);
       }
       return res.json({
         status: 'success',
@@ -175,7 +175,6 @@ module.exports = function (app, prefix) {
       });
     });
   });
-  // middlewate for module structure
   app.use(prefix + '/:moduleName', function (req, res, next) {
     dbSdk.useRawQuery(
       `SELECT * FROM system WHERE name='${
@@ -195,7 +194,6 @@ module.exports = function (app, prefix) {
       }
     );
   });
-  // api query
   app.get(prefix + '/:moduleName/:id', function (req, res) {
     const params = req.params;
     const moduleName = modulePrefix + params.moduleName;
@@ -203,10 +201,7 @@ module.exports = function (app, prefix) {
     let query = ` SELECT * FROM ${moduleName} WHERE id=${id} LIMIT 1`;
     dbSdk.useRawQuery(query, (returnData) => {
       if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
-        });
+        return res.sendStatus(500);
       }
       return res.status(200).json({
         status: 'success',
@@ -222,10 +217,7 @@ module.exports = function (app, prefix) {
     } FROM ${moduleName} ${params.query ? params.query : ''}`;
     dbSdk.useRawQuery(query, (returnData) => {
       if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
-        });
+        return res.sendStatus(500);
       }
       return res.status(200).json({
         status: 'success',
@@ -241,10 +233,7 @@ module.exports = function (app, prefix) {
     }`;
     dbSdk.useRawQuery(query, (returnData) => {
       if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
-        });
+        return res.sendStatus(500);
       }
       res.status(200).json({
         status: 'success',
@@ -257,10 +246,7 @@ module.exports = function (app, prefix) {
     const query = `DELETE  FROM ${moduleName} WHERE id=${req.params.id}`;
     dbSdk.useRawQuery(query, (returnData) => {
       if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
-        });
+        return res.sendStatus(500);
       }
       return res.status(200).send({
         status: 'success',
@@ -276,10 +262,7 @@ module.exports = function (app, prefix) {
       'WHERE id=' + req.params.id,
       (returnData) => {
         if (returnData == false) {
-          return res.status(500).json({
-            status: 'failed',
-            data: [],
-          });
+          return res.sendStatus(500);
         }
         return res.status(200).json({
           status: 'success',
@@ -289,19 +272,34 @@ module.exports = function (app, prefix) {
     );
   });
   app.post(prefix + '/:moduleName/update', function (req, res) {
+    let fileFields = [];
     const moduleName = modulePrefix + req.params.moduleName;
-    dbSdk.updateData(moduleName, req.body, req.params.query, (returnData) => {
-      if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
+    req.structure.forEach((st) => {
+      if (st.fieldType == 'file') {
+        fileFields.push(st.name);
+      }
+    });
+
+    uploadFilesAndGetUrlsWithKeyAndObject(
+      req.files,
+      moduleName,
+      fileFields,
+      (urls) => {
+        let params = req.body;
+        Object.keys(urls).forEach((key) => {
+          params[key] = urls[key];
+        });
+        dbSdk.updateData(moduleName, params, req.body.query, (returnData) => {
+          if (returnData == false) {
+            return res.sendStatus(500);
+          }
+          return res.status(200).json({
+            status: 'success',
+            data: returnData,
+          });
         });
       }
-      return res.status(200).json({
-        status: 'success',
-        data: returnData,
-      });
-    });
+    );
   });
   app.post(prefix + '/:moduleName/delete/:id', function (req, res) {
     const params = req.body;
@@ -309,10 +307,7 @@ module.exports = function (app, prefix) {
     const query = `DELETE  FROM ${moduleName} WHERE id=${req.params.id}`;
     dbSdk.useRawQuery(query, (returnData) => {
       if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
-        });
+        return res.sendStatus(500);
       }
       return res.status(200).json({
         status: 'success',
@@ -340,12 +335,9 @@ module.exports = function (app, prefix) {
         });
         dbSdk.insertData(moduleName, params, (returnData) => {
           if (returnData == false) {
-            return res.status(500).json({
-              status: 'failed',
-              data: [],
-            });
+            return res.sendStatus(500);
           }
-          return res.status(200).json({
+          return res.status(201).json({
             status: 'success',
             data: returnData,
           });
@@ -358,17 +350,12 @@ module.exports = function (app, prefix) {
     const moduleName = modulePrefix + req.params.moduleName;
     dbSdk.bulkInsert(moduleName, JSON.parse(data), (returnData) => {
       if (returnData == false) {
-        return res.status(500).json({
-          status: 'failed',
-          data: [],
-        });
+        return res.sendStatus(500);
       }
-      return res.status(200).json({
+      return res.status(201).json({
         status: 'success',
         data: returnData,
       });
     });
   });
-
-  // api query
 };

@@ -1,22 +1,12 @@
 var mysql = require('mysql');
-const config = require('../../config');
-const { query } = require('express');
+
 var con = mysql.createConnection({
-  host: config.host,
-  user: config.username,
-  password: config.password,
-  database: config.database,
+  host: process.env.host,
+  user: process.env.username,
+  password: process.env.password,
+  database: process.env.database,
 });
 
-function buildTableCreationQuery(json) {
-  let processedJSONToStringQyeryList = [];
-  json.forEach((subQ) => {
-    processedJSONToStringQyeryList.push(
-      `${subQ.name} ${subQ.type}(${subQ.length})`
-    );
-  });
-  return processedJSONToStringQyeryList.join(',');
-}
 function createTable(tableName, callback) {
   var sql = `CREATE TABLE IF NOT EXISTS ${tableName} (id int(11) NOT NULL auto_increment,inserted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY  (id))`;
 

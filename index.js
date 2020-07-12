@@ -1,12 +1,15 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const config = require('./config');
 const fileUpload = require('express-fileupload');
-
+const dotenv = require('dotenv');
 const port = 9008;
 const path = require('path');
+const fs = require('fs');
 const app = express();
-// const oauthserver = require('oauth2-server');
+const envConfig = dotenv.parse(fs.readFileSync('.env'));
+for (const k in envConfig) {
+  process.env[k] = envConfig[k];
+}
 
 app.use(express.urlencoded());
 app.use(express.json());
