@@ -2,6 +2,7 @@ const dbSdk = require('../databaseSDK');
 const { uploadFilesAndGetUrlsWithKeyAndObject } = require('../common');
 const jwt = require('jsonwebtoken');
 const config = require('../../config');
+const nodemailer = require('nodemailer');
 const modulePrefix = 'api_engine_';
 module.exports = function (app, prefix) {
   app.use(prefix, function (req, res, next) {
@@ -13,6 +14,38 @@ module.exports = function (app, prefix) {
       if (err) return res.sendStatus(403);
       req.user = user;
       next();
+    });
+  });
+  app.post(prefix + '/send-mail', function (req, res) {
+    const { from, to, subject, text, html } = req.body;
+    let transporter = nodemailer.createTransport({
+      host: config.mailHost,
+      port: config.mailPort,
+      secure: config.mailSecure,
+      auth: {
+        user: config.mailUser,
+        pass: config.mailPassword,
+      },
+    });
+
+    const sendMailObj = {
+      from,
+      to,
+      subject,
+    };
+    if (text) {
+      sendMailObj.text = text;
+    } else if (html) {
+      sendMailObj.html = html;
+    }
+
+    transporter.sendMail(sendMailObj, (error, success) => {
+      console.log(error);
+      if (error) return res.sendStatus(401);
+      return res.json({
+        status: 'success',
+        data: [],
+      });
     });
   });
   app.post(prefix + '/module/create', function (req, res) {
@@ -305,7 +338,6 @@ module.exports = function (app, prefix) {
         Object.keys(urls).forEach((key) => {
           params[key] = urls[key];
         });
-        console.log(params);
         dbSdk.insertData(moduleName, params, (returnData) => {
           if (returnData == false) {
             return res.status(500).json({

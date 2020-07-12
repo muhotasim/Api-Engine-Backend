@@ -83,7 +83,6 @@ function processJSONdata(data) {
         values.push("'" + d + "'");
     }
   });
-  console.log(values);
   return ` (${Object.keys(data).join(',')}) VALUES (${values.join(',')})`;
 }
 

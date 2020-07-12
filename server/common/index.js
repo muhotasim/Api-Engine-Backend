@@ -19,9 +19,7 @@ function uploadFilesAndGetUrlsWithKeyAndObject(
 
       let fileName = moduleName + '/' + uuidv4() + '_' + file.name;
       fileAndKey[fileKey] = fileName;
-      file.mv('./public/' + fileName, function (err) {
-        console.log(err);
-      });
+      file.mv('./public/' + fileName, function (err) {});
     }
   });
   callback(fileAndKey);

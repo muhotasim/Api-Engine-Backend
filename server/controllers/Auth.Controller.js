@@ -3,8 +3,8 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const jwt = require('jsonwebtoken');
 const config = require('../../config');
+const token_expire_time = config.tokenExpireTime;
 
-const token_expire_time = 900;
 module.exports = function (app, prefix) {
   app.post(prefix + '/login', function (req, res) {
     const { email, password } = req.body;
@@ -29,7 +29,7 @@ module.exports = function (app, prefix) {
                 config.REFRESH_TOKEN_PRIVATE_KEY
               );
               var dt = new Date();
-              dt = dt.setMinutes(dt.getMinutes() + 15);
+              dt = dt.getTime() + token_expire_time * 1000;
               const tokenData = {
                 token: refresh_token,
                 expires_in: dt,
@@ -57,7 +57,6 @@ module.exports = function (app, prefix) {
     dbSdk.useRawQuery(
       'SELECT * FROM auth_token WHERE token=' + '"' + rf_token + '"',
       (returnData) => {
-        console.log(returnData);
         if (returnData.length) {
           const data = returnData[0];
           jwt.verify(
