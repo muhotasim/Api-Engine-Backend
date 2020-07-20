@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 module.exports = function (app, prefix) {
   app.post(prefix + '/login', function (req, res) {
     const { email, password } = req.body;
-    console.log(process.env.privateKey, process.env.tokenExpireTime);
+
     // if (!email || !password) return res.sendStatus(401);
     dbSdk.useRawQuery(
       'SELECT * FROM user WHERE email="' + email + '"',

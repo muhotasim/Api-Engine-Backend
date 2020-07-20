@@ -12,16 +12,16 @@ function uploadFilesAndGetUrlsWithKeyAndObject(
   callback
 ) {
   let fileAndKey = {};
-
-  Object.keys(files).forEach((fileKey) => {
-    if (keys.includes(fileKey)) {
-      let file = files[fileKey];
-
-      let fileName = moduleName + '/' + uuidv4() + '_' + file.name;
-      fileAndKey[fileKey] = fileName;
-      file.mv('./public/' + fileName, function (err) {});
-    }
-  });
+  if (files) {
+    Object.keys(files).forEach((fileKey) => {
+      if (keys.includes(fileKey)) {
+        let file = files[fileKey];
+        let fileName = moduleName + '/' + uuidv4() + '_' + file.name;
+        fileAndKey[fileKey] = fileName;
+        file.mv('./public/' + fileName, function (err) {});
+      }
+    });
+  }
   callback(fileAndKey);
 }
 module.exports = {

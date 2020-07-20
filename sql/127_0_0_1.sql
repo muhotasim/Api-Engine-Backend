@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 12, 2020 at 07:28 AM
+-- Generation Time: Jul 20, 2020 at 11:49 AM
 -- Server version: 10.4.11-MariaDB
 -- PHP Version: 7.4.2
 
@@ -21,8 +21,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `apiengine`
 --
-CREATE DATABASE IF NOT EXISTS `apiengine` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `apiengine`;
 
 -- --------------------------------------------------------
 
@@ -63,16 +61,6 @@ CREATE TABLE `api_engine_test` (
   `test` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Dumping data for table `api_engine_test`
---
-
-INSERT INTO `api_engine_test` (`id`, `inserted_date`, `updated_date`, `test`) VALUES
-(11, '2020-07-05 04:37:47', '2020-07-05 04:37:47', 'test213123'),
-(12, '2020-07-05 05:13:28', '2020-07-05 05:13:28', 'test213123'),
-(13, '2020-07-05 05:16:02', '2020-07-05 05:16:02', 'test213123'),
-(14, '2020-07-05 05:16:25', '2020-07-05 05:16:25', 'test213123');
-
 -- --------------------------------------------------------
 
 --
@@ -84,14 +72,29 @@ CREATE TABLE `auth_token` (
   `expires_in` double NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `auth_token`
+-- Table structure for table `permission`
 --
 
-INSERT INTO `auth_token` (`token`, `expires_in`) VALUES
-('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTU5NDUzMTI0MH0.GyNo1ydbiivOPIFReEHlqO3BZL8Gyibxu9Oh6LyMvds', 1594531300029),
-('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTU5NDUzMTM0N30.kXjAkHxeinOMaB-VgvFjivCkHA4Fm9YO73Nbl6fU7G8', 1594531407546),
-('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTU5NDUzMTU5MH0.2B011vHros3-mti0JdfpxictuvcjtEv6N-6OBGJuZT4', 1594531650514);
+CREATE TABLE `permission` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `label` varchar(50) NOT NULL,
+  `value` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `role`
+--
+
+CREATE TABLE `role` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `label` varchar(50) NOT NULL,
+  `value` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -155,6 +158,18 @@ ALTER TABLE `api_engine_test`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `permission`
+--
+ALTER TABLE `permission`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `role`
+--
+ALTER TABLE `role`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `system`
 --
 ALTER TABLE `system`
@@ -180,7 +195,19 @@ ALTER TABLE `api_engine_file_upload_test`
 -- AUTO_INCREMENT for table `api_engine_test`
 --
 ALTER TABLE `api_engine_test`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+
+--
+-- AUTO_INCREMENT for table `permission`
+--
+ALTER TABLE `permission`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `role`
+--
+ALTER TABLE `role`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `system`

@@ -1,20 +1,10 @@
 const dbSdk = require('../databaseSDK');
-const { uploadFilesAndGetUrlsWithKeyAndObject } = require('../common');
+const { uploadFilesAndGetUrlsWithKeyAndObject, uuidv4 } = require('../common');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+var pdf = require('html-pdf');
 const modulePrefix = 'api_engine_';
 module.exports = function (app, prefix) {
-  app.use(prefix, function (req, res, next) {
-    const authTOken = req.headers['authorization'];
-    const token = authTOken && authTOken.split(' ')[1];
-
-    if (!token) return res.sendStatus(401);
-    jwt.verify(token, process.env.privateKey, (err, user) => {
-      if (err) return res.sendStatus(403);
-      req.user = user;
-      next();
-    });
-  });
   app.post(prefix + '/send-mail', function (req, res) {
     const { from, to, subject, text, html } = req.body;
     let transporter = nodemailer.createTransport({
@@ -39,7 +29,7 @@ module.exports = function (app, prefix) {
 
     transporter.sendMail(sendMailObj, (error, success) => {
       if (error) {
-        console.log(error);
+        // console.log(error);
         return res.json({
           status: 'failed',
           data: [],
@@ -50,6 +40,26 @@ module.exports = function (app, prefix) {
         data: [],
       });
     });
+  });
+  app.post(prefix + '/htmlToPdf', function (req, res) {
+    const body = req.body;
+    var config = { format: 'A4' };
+    const fileName = '/generatedPDFs/' + uuidv4() + '.pdf';
+    pdf
+      .create(body.html, config)
+      .toFile('public' + fileName, function (err, fileUrl) {
+        if (err) {
+          console.log(err);
+          return res.json({
+            status: 'failed',
+            data: [],
+          });
+        }
+        return res.json({
+          status: 'success',
+          data: fileName,
+        });
+      });
   });
   app.post(prefix + '/module/create', function (req, res) {
     const moduleName = modulePrefix + req.body.moduleName;
@@ -256,18 +266,36 @@ module.exports = function (app, prefix) {
   });
   app.post(prefix + '/:moduleName/update/:id', function (req, res) {
     const moduleName = modulePrefix + req.params.moduleName;
-    dbSdk.updateData(
+    let fileFields = [];
+    req.structure.forEach((st) => {
+      if (st.fieldType == 'file') {
+        fileFields.push(st.name);
+      }
+    });
+
+    uploadFilesAndGetUrlsWithKeyAndObject(
+      req.files,
       moduleName,
-      req.body,
-      'WHERE id=' + req.params.id,
-      (returnData) => {
-        if (returnData == false) {
-          return res.sendStatus(500);
-        }
-        return res.status(200).json({
-          status: 'success',
-          data: returnData,
+      fileFields,
+      (urls) => {
+        let body = req.body;
+        Object.keys(urls).forEach((key) => {
+          params[key] = urls[key];
         });
+        dbSdk.updateData(
+          moduleName,
+          body,
+          'WHERE id=' + req.params.id,
+          (returnData) => {
+            if (returnData == false) {
+              return res.sendStatus(500);
+            }
+            return res.status(200).json({
+              status: 'success',
+              data: returnData,
+            });
+          }
+        );
       }
     );
   });
@@ -285,11 +313,14 @@ module.exports = function (app, prefix) {
       moduleName,
       fileFields,
       (urls) => {
-        let params = req.body;
+        let body = req.body;
         Object.keys(urls).forEach((key) => {
-          params[key] = urls[key];
+          body[key] = urls[key];
         });
-        dbSdk.updateData(moduleName, params, req.body.query, (returnData) => {
+
+        let query = req.body.query;
+        delete body.query;
+        dbSdk.updateData(moduleName, body, query, (returnData) => {
           if (returnData == false) {
             return res.sendStatus(500);
           }
@@ -329,6 +360,7 @@ module.exports = function (app, prefix) {
       moduleName,
       fileFields,
       (urls) => {
+        console.log(urls);
         let params = req.body;
         Object.keys(urls).forEach((key) => {
           params[key] = urls[key];

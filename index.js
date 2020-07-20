@@ -2,11 +2,14 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const fileUpload = require('express-fileupload');
 const dotenv = require('dotenv');
-const port = 9008;
+var cors = require('cors');
+const port = process.env.port || 9008;
 const path = require('path');
 const fs = require('fs');
 const app = express();
 const envConfig = dotenv.parse(fs.readFileSync('.env'));
+
+app.use(cors());
 for (const k in envConfig) {
   process.env[k] = envConfig[k];
 }

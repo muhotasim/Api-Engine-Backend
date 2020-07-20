@@ -2,10 +2,6 @@ const dbSdk = require('../databaseSDK');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 module.exports = function (app, prefix) {
-  app.get(prefix, function (req, res) {
-    res.send('hello world');
-  });
-
   app.post(prefix + '/create', function (req, res) {
     const { name, password, email } = req.body;
     dbSdk.useRawQuery(
