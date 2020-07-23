@@ -37,16 +37,23 @@ module.exports = function (app, prefix) {
               };
               dbSdk.insertData('auth_token', tokenData, (returnData) => {
                 return res.send({
+                  status: 'success',
                   access_token: token,
                   refresh_token: refresh_token,
                 });
               });
             } else {
-              return res.sendStatus(401);
+              return res.status(401).json({
+                status: 'failed',
+                data: [],
+              });
             }
           });
         } else {
-          return res.sendStatus(401);
+          return res.status(401).json({
+            status: 'failed',
+            data: [],
+          });
         }
       }
     );
@@ -64,7 +71,11 @@ module.exports = function (app, prefix) {
             data.token,
             process.env.REFRESH_TOKEN_PRIVATE_KEY,
             (err, result) => {
-              if (err) return res.sendStatus(403);
+              if (err)
+                return res.status(403).json({
+                  status: 'failed',
+                  data: [],
+                });
               const token = jwt.sign(
                 {
                   userId: result.id,
@@ -89,7 +100,8 @@ module.exports = function (app, prefix) {
                 " WHERE token='" + rf_token + "'",
                 (returnD) => {
                   dbSdk.insertData('auth_token', tokenData, (returnData) => {
-                    return res.send({
+                    return res.status(200).send({
+                      status: 'success',
                       access_token: token,
                       refresh_token: refresh_token,
                     });
@@ -99,7 +111,10 @@ module.exports = function (app, prefix) {
             }
           );
         } else {
-          return res.sendStatus(403);
+          return res.status(403).json({
+            status: 'failed',
+            data: [],
+          });
         }
       }
     );
