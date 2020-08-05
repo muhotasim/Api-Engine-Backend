@@ -174,10 +174,15 @@ module.exports = function (app, prefix) {
   app.post(prefix + '/modules', function (req, res) {
     const params = req.body;
 
-    let query = ' SELECT * FROM system  LIMIT 10 OFFSET 0';
+    let query =
+      'SELECT * FROM system LIMIT ' + params.limit + ' OFFSET ' + params.offset;
+    console.log(query);
     dbSdk.useRawQuery(query, (returnData) => {
       if (returnData == false) {
-        return res.sendStatus(500);
+        return res.status(500).json({
+          status: 'failed',
+          data: [],
+        });
       }
       return res.json({
         status: 'success',
@@ -204,7 +209,7 @@ module.exports = function (app, prefix) {
       }
     );
   });
-  app.get(prefix + '/:moduleName/:id', function (req, res) {
+  app.post(prefix + '/:moduleName/:id', function (req, res) {
     const params = req.params;
     const moduleName = modulePrefix + params.moduleName;
     const id = params.id;

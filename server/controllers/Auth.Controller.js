@@ -21,7 +21,7 @@ module.exports = function (app, prefix) {
                 },
                 process.env.privateKey,
                 {
-                  expiresIn: parseInt(process.env.tokenExpireTime),
+                  expiresIn:process.env.tokenExpireTime*1000,
                 }
               );
               const refresh_token = jwt.sign(
@@ -71,18 +71,20 @@ module.exports = function (app, prefix) {
             data.token,
             process.env.REFRESH_TOKEN_PRIVATE_KEY,
             (err, result) => {
-              if (err)
+              if (err) {
                 return res.status(403).json({
                   status: 'failed',
                   data: [],
                 });
+              }
+
               const token = jwt.sign(
                 {
                   userId: result.id,
                 },
                 process.env.privateKey,
                 {
-                  expiresIn: process.env.tokenExpireTime,
+                  expiresIn: process.env.tokenExpireTime*1000,
                 }
               );
               const refresh_token = jwt.sign(
